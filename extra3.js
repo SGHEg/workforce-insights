@@ -65,7 +65,7 @@ function stack(C){
   [0,0.5,1].forEach(function(f){var y=Y(mx*f);s+="<line x1='"+pl+"' x2='"+(w-pr)+"' y1='"+y+"' y2='"+y+"' stroke='var(--line)'/><text x='"+(pl-4)+"' y='"+(y+3)+"' text-anchor='end' class='ax'>"+F.n0(mx*f)+"</text>";});
   C.rows.forEach(function(r,i){
     var x=pl+i*bw+bw*0.2,bwid=bw*0.6,acc=0;
-    r.v.forEach(function(v,k){if(!v){return;}var y1=Y(acc+v),y0=Y(acc);s+="<rect x='"+x+"' y='"+y1+"' width='"+bwid+"' height='"+(y0-y1)+"' fill='"+CC[k%CC.length]+"'><title>"+esc(C.names[k])+": "+v+"</title></rect>";acc+=v;});
+    r.v.forEach(function(v,k){if(!v){return;}var y1=Y(acc+v),y0=Y(acc);s+="<rect x='"+x+"' y='"+y1+"' width='"+bwid+"' height='"+(y0-y1)+"' fill='"+CC[k%CC.length]+"'><title>"+esc(C.names[k])+": "+v+"</title></rect>";if((y0-y1)>=12){s+="<text x='"+(x+bwid/2)+"' y='"+((y0+y1)/2+3)+"' text-anchor='middle' class='ax' style='fill:#fff;font-weight:700'>"+v+"</text>";}acc+=v;});
     s+="<text x='"+(x+bwid/2)+"' y='"+(Y(acc)-4)+"' text-anchor='middle' class='ax' style='font-weight:700'>"+F.n0(r.t)+"</text><text x='"+(x+bwid/2)+"' y='"+(h-10)+"' text-anchor='middle' class='ax'>"+mshort(r.m)+"</text>";
   });
   return s+"</svg><div class='tpleg'>"+C.names.map(function(nm,k){return (C.total[k]||0)?"<span><i style='background:"+CC[k%CC.length]+"'></i>"+esc(nm)+" "+F.n0(C.total[k])+"</span>":'';}).join('')+"</div>";
@@ -83,7 +83,7 @@ function lines(labels,series,pct){
   series.forEach(function(se){
     var seg=[],segs=[];se.v.forEach(function(v,i){if(v==null){if(seg.length){segs.push(seg);}seg=[];}else{seg.push(X(i).toFixed(1)+','+Y(v).toFixed(1));}});if(seg.length){segs.push(seg);}
     segs.forEach(function(g){if(g.length>1){s+="<polyline fill='none' stroke='"+se.c+"' stroke-width='2.5' points='"+g.join(' ')+"'/>";}});
-    se.v.forEach(function(v,i){if(v!=null){s+="<circle cx='"+X(i).toFixed(1)+"' cy='"+Y(v).toFixed(1)+"' r='3.5' fill='"+se.c+"'><title>"+esc(se.n)+" · "+lab(labels[i])+": "+fm(v)+"</title></circle>";}});
+    se.v.forEach(function(v,i){if(v!=null){s+="<circle cx='"+X(i).toFixed(1)+"' cy='"+Y(v).toFixed(1)+"' r='3.5' fill='"+se.c+"'><title>"+esc(se.n)+" · "+lab(labels[i])+": "+fm(v)+"</title></circle>";s+="<text x='"+X(i).toFixed(1)+"' y='"+(Y(v)-8).toFixed(1)+"' text-anchor='middle' class='ax' style='font-size:9px;font-weight:700;fill:"+se.c+"'>"+fm(v)+"</text>";}});
   });
   return s+"</svg><div class='tpleg'>"+series.map(function(se){return "<span><i style='background:"+se.c+"'></i>"+esc(se.n)+"</span>";}).join('')+"</div>";
 }
@@ -103,7 +103,7 @@ function hxData(){
   F.R().forEach(function(r){
     if(r.Dataset==='PosDept'){has[r.Month]=1;return;}
     if(br!=='ALL'&&r.Branch!==br){return;}
-    if(r.Dataset==='Hire'){H[r.Month]=(H[r.Month]||0)+1;if(r.Month===S.mo){var p=String(r.Item).split(' @ ');rows.push({cat:r.Group||'-',dep:(p[0]||'-').trim(),pos:(p[1]||'-').trim(),sec:(p[2]||'-').trim()});}}
+    if(r.Dataset==='Hire'){H[r.Month]=(H[r.Month]||0)+1;if(r.Month===S.mo){var p=String(r.Item).split(' @ ');var pn=(p[1]||'-').trim();if(r.Group==='Nursing'&&/^(senior )?staff nurse$/i.test(pn)){pn='Staff Nurse + Senior Staff Nurse';}rows.push({cat:r.Group||'-',dep:(p[0]||'-').trim(),pos:pn,sec:(p[2]||'-').trim()});}}
     else if(r.Dataset==='Resign'){L[r.Month]=(L[r.Month]||0)+1;}
   });
   return {has:has,H:H,L:L,rows:rows};
