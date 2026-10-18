@@ -24,7 +24,36 @@ function load(){
 }
 function branch(){var B=Object.keys((T&&T.snaps)||{});if(!B.length){return null;}return (S.br!=='ALL'&&T.snaps[S.br])?S.br:B[0];}
 function months(){var b=branch();return b?Object.keys(T.snaps[b]).sort():[];}
-function snap(m){var b=branch();return b?(T.snaps[b][m]||null):null;}
+/* Interns are not recruitment: Internship Program / Nursing Internship / intern positions are left out of every hire figure on this page and shown apart in the Hires report. */
+function isInt(g,pos){return /internship/i.test(g||'')||/intern/i.test(pos||'');}
+var ADJ={};
+function adj(sn,key){
+  if(!sn||!sn.cat||!sn.cat.names){return sn;}
+  if(ADJ[key]&&ADJ[key].raw===sn){return ADJ[key].out;}
+  var C=sn.cat,ix=[];C.names.forEach(function(n,i){if(/intern/i.test(n)){ix.push(i);}});
+  if(!ix.length){return sn;}
+  var keep=function(a){return a.filter(function(_,i){return ix.indexOf(i)<0;});},sm=function(a){return a.reduce(function(t,v){return t+(v||0);},0);},rm={},out={};
+  Object.keys(sn).forEach(function(k){out[k]=sn[k];});
+  var rows=C.rows.map(function(r){var x=0;ix.forEach(function(i){x+=r.v[i]||0;});rm[r.m]=x;return {m:r.m,v:keep(r.v),t:r.t-x};});
+  var total=keep(C.total),tt=sm(total);
+  out.cat={names:keep(C.names),rows:rows,total:total,pct:total.map(function(v){return tt?v/tt:0;})};
+  var M=(sn.monthly||[]).map(function(r){var o={};Object.keys(r).forEach(function(k){o[k]=r[k];});o.h=Math.max(0,(r.h||0)-(rm[r.m]||0));return o;}),run=0;
+  M.forEach(function(r,i){run+=r.h;r.cum=run;r.chg=i?r.h-M[i-1].h:null;r.a3=i>=2?(M[i-2].h+M[i-1].h+r.h)/3:null;r.net=r.lv==null?null:r.h-r.lv;});
+  out.monthly=M;
+  if(sn.kpi){
+    var k=Object.assign({},sn.kpi),full=M.filter(function(r){return r.st==='Complete';}),pk=null;
+    full.forEach(function(r){if(!pk||r.h>pk.h){pk=r;}});
+    k.total=sm(M.map(function(r){return r.h;}));k.avg=full.length?sm(full.map(function(r){return r.h;}))/full.length:null;k.peak=pk?pk.m:null;k.lastFull=full.length?full[full.length-1].h:null;
+    var N=(k.notes||[]).slice();
+    if(pk){N[2]=pk.h+' hires';}
+    if(full.length){var lf=full[full.length-1],pf=full.length>1?full[full.length-2]:null;N[3]=F.mlabel(lf.m)+(pf?'  ('+(lf.h-pf.h>=0?'+':'')+(lf.h-pf.h)+' vs prior month)':'');}
+    k.notes=N;out.kpi=k;
+  }
+  if(sn.topPos){var tp0=sn.topPos.filter(function(o){return !isInt('',o.n);});out.topPos=tp0.map(function(o){return {n:o.n,c:o.c,p:out.kpi&&out.kpi.total?o.c/out.kpi.total:o.p};});}
+  out.__internNote=sm(Object.keys(rm).map(function(m){return rm[m];}));
+  ADJ[key]={raw:sn,out:out};return out;
+}
+function snap(m){var b=branch();return b?adj(T.snaps[b][m]||null,b+'|'+m):null;}
 function head(t,s){return "<div class='hd'><div><span class='mut'>"+F.mlabel(S.mo)+"</span><h1>"+t+"</h1><p class='mut'>"+s+"</p></div></div>";}
 function kk(l,v,s,c){return "<div class='k'><div><span>"+l+"</span><b class='"+(c||'')+"'>"+v+"</b>"+(s?"<small class='dm'>"+s+"</small>":'')+"</div></div>";}
 function fv(label,v){
@@ -89,7 +118,7 @@ function lines(labels,series,pct){
 }
 function evCounts(ms,br){
   var R=F.R(),has={},H={},L={};
-  R.forEach(function(r){if(br&&r.Branch!==br){return;}if(r.Dataset==='PosDept'){has[r.Month]=1;}if(r.Dataset==='Hire'){H[r.Month]=(H[r.Month]||0)+1;}if(r.Dataset==='Resign'){L[r.Month]=(L[r.Month]||0)+1;}});
+  R.forEach(function(r){if(br&&r.Branch!==br){return;}if(r.Dataset==='PosDept'){has[r.Month]=1;}if(r.Dataset==='Hire'||r.Dataset==='Resign'){var q=String(r.Item).split(' @ ');if(isInt(r.Group,(q[1]||'').trim())){return;}}if(r.Dataset==='Hire'){H[r.Month]=(H[r.Month]||0)+1;}if(r.Dataset==='Resign'){L[r.Month]=(L[r.Month]||0)+1;}});
   var mm=ms.filter(function(m){return has[m];});
   return {m:mm,h:mm.map(function(m){return H[m]||0;}),l:mm.map(function(m){return L[m]||0;})};
 }
@@ -99,14 +128,15 @@ function losMetric(sn,key){var r=(sn.los||[]).filter(function(x){return x.k.inde
 var HX={cat:'all'};
 function pmon(m){var y=+m.slice(0,4),k=+m.slice(5,7)-1;if(k<1){y--;k=12;}return y+'-'+('0'+k).slice(-2);}
 function hxData(){
-  var br=S.br,has={},H={},L={},rows=[];
+  var br=S.br,has={},H={},L={},rows=[],ir=[],il=[];
   F.R().forEach(function(r){
     if(r.Dataset==='PosDept'){has[r.Month]=1;return;}
     if(br!=='ALL'&&r.Branch!==br){return;}
+    if(r.Dataset==='Hire'||r.Dataset==='Resign'){var q=String(r.Item).split(' @ ');if(isInt(r.Group,(q[1]||'').trim())){if(r.Month===S.mo){var nk=/nursing/i.test(r.Group||'')?'Nursing Internship':'Internship Program';if(r.Dataset==='Hire'){ir.push({cat:nk,dep:(q[0]||'-').trim(),pos:(q[1]||'-').trim(),sec:(q[2]||'-').trim()});}else{il.push({cat:nk});}}return;}}
     if(r.Dataset==='Hire'){H[r.Month]=(H[r.Month]||0)+1;if(r.Month===S.mo){var p=String(r.Item).split(' @ ');var pn=(p[1]||'-').trim();if(r.Group==='Nursing'&&/^(senior )?staff nurse$/i.test(pn)){pn='Staff Nurse + Senior Staff Nurse';}rows.push({cat:r.Group||'-',dep:(p[0]||'-').trim(),pos:pn,sec:(p[2]||'-').trim()});}}
     else if(r.Dataset==='Resign'){L[r.Month]=(L[r.Month]||0)+1;}
   });
-  return {has:has,H:H,L:L,rows:rows};
+  return {has:has,H:H,L:L,rows:rows,ir:ir,il:il};
 }
 function cntBy(L,fn){var M={},O=[];L.forEach(function(r){var k=fn(r);if(!M[k]){M[k]={n:k,c:0};O.push(M[k]);}M[k].c++;});return O.sort(function(a,b){return b.c-a.c||(a.n<b.n?-1:1);});}
 function cmp(a,b){return a<b?-1:(a>b?1:0);}
@@ -132,6 +162,13 @@ function hxInner(){
   if(n){
     h+="<div class='g2'>"+F.card('Hires by category',hb(cats,lab,val,sub,'#1aa37a'))+F.card('Hires by department',hb(top(D.rows,'dep',10),lab,val,sub,'#2f6fd1'))+"</div>";
     h+="<div class='g2'>"+F.card('Hires by section',hb(top(D.rows,'sec',10),lab,val,sub,'#7a5cc7'))+F.card('Hires by position',hb(top(D.rows,'pos',10),lab,val,sub,'#e0a100'))+"</div>";
+  }
+  if(D.ir.length||D.il.length){
+    var kinds={};D.ir.forEach(function(r){(kinds[r.cat]=kinds[r.cat]||[0,0])[0]++;});D.il.forEach(function(r){(kinds[r.cat]=kinds[r.cat]||[0,0])[1]++;});
+    var ig={},io=[];D.ir.forEach(function(r){var k=[r.cat,r.dep,r.sec,r.pos].join('|');if(!ig[k]){ig[k]={cat:r.cat,dep:r.dep,sec:r.sec,pos:r.pos,c:0};io.push(ig[k]);}ig[k].c++;});
+    io.sort(function(a,b){return cmp(a.cat,b.cat)||(b.c-a.c)||cmp(a.dep,b.dep)||cmp(a.pos,b.pos);});
+    var icols=[{h:'Position',f:function(o){return esc(o.pos);}},{h:'Section',f:function(o){return esc(o.sec);}},{h:'Department',f:function(o){return esc(o.dep);}},{h:'Programme',f:function(o){return esc(o.cat);}},{h:'Started',n:1,f:function(o){return F.n0(o.c);}}];
+    h+="<details style='margin:12px 0;padding:8px 14px;border:1px dashed var(--line);border-radius:12px;color:var(--mut);font-size:12.5px'><summary style='cursor:pointer'>Internship (for information, not counted in the hires above): <b style='color:var(--ink,inherit)'>"+F.n0(D.ir.length)+"</b> started · <b style='color:var(--ink,inherit)'>"+F.n0(D.il.length)+"</b> left"+Object.keys(kinds).sort().map(function(k){return (k===Object.keys(kinds).sort()[0]?' - ':' · ')+esc(k)+' '+kinds[k][0]+' / '+kinds[k][1];}).join('')+"</summary><p class='note'>Interns are not recruitment, so they are left out of every hire and leaver figure on this page. Shown as started / left.</p>"+(io.length?F.tbl('hxi',icols,io,0,null,1):'')+"</details>";
   }
   var run={},TR=all.map(function(m){var y=m.slice(0,4),x=D.H[m]||0;run[y]=(run[y]||0)+x;var p=pmon(m);return {m:m,h:x,chg:D.has[p]?x-(D.H[p]||0):null,cum:run[y],lv:D.L[m]||0};});
   var tc=[{h:'Month',f:function(o){return o.m===S.mo?'<b>'+lab2(o.m)+'</b>':lab2(o.m);}},{h:'Hires',n:1,f:function(o){return F.n0(o.h);}},{h:'Change vs prior month',n:1,f:function(o){return o.chg==null?'-':F.gp(o.chg);}},{h:'Cumulative hires',n:1,f:function(o){return F.n0(o.cum);}},{h:'Leavers',n:1,f:function(o){return F.n0(o.lv);}},{h:'Net',n:1,m:1,f:function(o){return F.gp(o.h-o.lv);}}];
@@ -163,6 +200,7 @@ function tp(){
     +kk('LAST FULL MONTH',F.n0(k.lastFull),esc(N[3]||''))
     +kk('LEAVERS REPORTED',F.n0(k.leavers),esc(N[4]||''))
     +kk('HIRED THEN RESIGNED',F.n0(k.gone),esc(N[5]||''))+"</div>";
+  if(sn.__internNote){h+="<div class='cav'>Interns (Internship Program) are left out of the hire counts, the month table and the category chart ("+F.n0(sn.__internNote)+" since January). The profile, length-of-service and quality-of-hire sections further down are as reported by the workbook and may still include them.</div>";}
   h+=rep();
   var M=sn.monthly||[];
   h+="<div class='g2'>"+F.card('Monthly hiring (by joining date)',barLine(M))+F.card('Hires by category',stack(sn.cat||{rows:[],names:[],total:[]}))+"</div>";
