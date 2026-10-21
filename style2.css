@@ -57,4 +57,5 @@
 .nr-key i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
 .nr .note{padding:0 22px 18px;margin-top:8px}
 @media(max-width:640px){.nr-row{grid-template-columns:1fr 60px 60px;row-gap:6px}.nr-row .nr-gp{grid-column:1/3;justify-self:start}.nr-row .nr-pc{grid-column:3}.nr-row .nr-go{display:none}.nr-hero h2{font-size:21px}.nr-rad{width:132px;height:132px}}
+.kpis .k small.dm{white-space:normal;line-height:1.35}
 /* <<< Nursing Command Radar */
