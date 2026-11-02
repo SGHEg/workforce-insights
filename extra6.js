@@ -23,5 +23,8 @@ function led(R,IDX,MONTHS){
   Lv.forEach(function(e){add('Resign',e,true);});
   window.WIX=window.WIX||{};window.WIX.ledgerInfo=D;
 }
-window.WIX=window.WIX||{};window.WIX.led=led;
+function stfL(m){var D=window.WIX&&window.WIX.ledgerInfo;if(!D||!D.staff){return null;}var y0=+D.from.slice(0,4),m0=+D.from.slice(5,7),i=(+m.slice(0,4)-y0)*12+(+m.slice(5,7)-m0);return (i>=0&&D.staff[i])?D.staff[i]:null;}
+window.WIX=window.WIX||{};window.WIX.led=led;window.WIX.stfL=stfL;
+/* the page can load its data before this file runs (the portal does): then apply the ledger now and redraw */
+if(W&&W.f&&W.f.R&&W.f.IX&&W.f.R().some(function(r){return r.Dataset==='Ledger';})){led(W.f.R(),W.f.IX(),W.f.M());try{W.render();}catch(e){}}
 })();

@@ -37,7 +37,7 @@ h+="<div class='g2'>"+F.card('Hires by department · '+F.mlabel(S.mo),hbar(top(h
 return h+bridge(H);}
 function nInt(m){var sp=F.get('Workforce_Nursing_Split',m,S.br).filter(function(r){return r.Item==='Nursing Internship';});if(sp.length){return sum2(sp,'Total');}return F.get('PosDept',m,S.br).filter(function(r){return r.Group==='Nursing'&&/caregiver/i.test(String(r.Item).split(' @ ')[0]);}).reduce(function(t,r){return t+(r.Current||0);},0);}
 function sum2(L,f){return L.reduce(function(t,o){return t+(o[f]||0);},0);}
-function staff(m){var W=F.get('Workforce',m,S.br);if(!W.length){return null;}return sum2(W.filter(function(o){return nm(o.Item)!=='handicapped'&&o.Item!==IPN;}),'Total')-nInt(m);}
+function staff(m){var q=(window.WIX&&window.WIX.stfL)?window.WIX.stfL(m):null;if(q){return q[1];}var W=F.get('Workforce',m,S.br);if(!W.length){return null;}return sum2(W.filter(function(o){return nm(o.Item)!=='handicapped'&&o.Item!==IPN;}),'Total')-nInt(m);}
 function retCard(v,s){return "<div class='k'><div><span>RETENTION RATE</span><b>"+v+"</b><small class='dm'>"+s+"</small></div></div>";}
 function evc(ds,m){var n=0;F.R().forEach(function(r){if(r.Dataset!==ds||!r.Item||r.Month!==m||(S.br!=='ALL'&&r.Branch!==S.br)){return;}if(nm(r.Group)==='handicapped'||isT(r.Group)||isT(r.Item)){return;}n++;});return n;}
 function ret(){var y=S.mo.slice(0,4),ms=F.M().filter(function(m){return m.slice(0,4)===y&&m<=S.mo;}),b=null,i,cur,end,hb,lb,open,N=0;for(i=0;i<ms.length;i++){if(staff(ms[i])!=null){b=ms[i];break;}}
