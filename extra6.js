@@ -28,7 +28,20 @@ function led(R,IDX,MONTHS){
   });
 }
 function stfL(m){var B=window.WIX&&window.WIX.ledgerByYear,D=B&&B[String(m).slice(0,4)];if(!D||!D.staff){return null;}var y0=+D.from.slice(0,4),m0=+D.from.slice(5,7),i=(+m.slice(0,4)-y0)*12+(+m.slice(5,7)-m0);return (i>=0&&D.staff[i])?D.staff[i]:null;}
-window.WIX=window.WIX||{};window.WIX.led=led;window.WIX.stfL=stfL;
+/* Division headcount straight from the published Master_Count rows (trainees never counted; Corporate Management belongs to Admin; Handicapped is its own line).
+   Months without Master_Count rows return null and keep the older way of counting. */
+function hcDiv(m,b){var Rr=(W&&W.f&&W.f.R)?W.f.R():null;if(!Rr){return null;}var T={},n=0;Rr.forEach(function(r){if(r.Dataset==='Master_Count'&&r.Month===m&&(!b||b==='ALL'||r.Branch===b)){T[r.Group]=(T[r.Group]||0)+(+r.Current||0);n++;}});if(!n){return null;}return {'Nursing':T['Nursing']||0,'Operation':T['Operation']||0,'Allied Health':T['Allied Health']||0,'Doctors':T['Doctors']||0,'Admin':(T['Admin']||0)+(T['Corporate Management']||0)};}
+window.WIX=window.WIX||{};window.WIX.led=led;window.WIX.stfL=stfL;if(!window.WIX.hcDiv){window.WIX.hcDiv=hcDiv;}
+/* "+N interns" next to the Division numbers (they are never counted) and one line that explains what is outside the divisions */
+function intn(){var Rr=(W&&W.f&&W.f.R)?W.f.R():null,mo=W&&W.S&&W.S.mo;if(!Rr||!mo){return null;}var by={},tot=0,hc=0,n=0;Rr.forEach(function(r){if(r.Dataset==='Master_Count'&&r.Month===mo){var k=r.Group==='Corporate Management'?'Admin':r.Group;by[k]=(by[k]||0)+(+r.Total||0);tot+=(+r.Total||0);if(r.Group==='Handicapped'){hc+=(+r.Current||0);}n++;}});return n?{by:by,tot:tot,hc:hc}:null;}
+function dec(){var I=intn();document.querySelectorAll('table').forEach(function(t){var h=t.querySelector('tr');if(!h){return;}var c=[].slice.call(h.children).map(function(x){return (x.textContent||'').trim();});if(c[0]!=='Division'||c[2]!=='Current'){return;}
+  [].slice.call(t.querySelectorAll('.intn')).forEach(function(x){if(!I){x.parentNode.removeChild(x);}});
+  var nx=t.nextElementSibling;if(!I){if(nx&&nx.className==='mut intnote'){nx.parentNode.removeChild(nx);}return;}
+  [].slice.call(t.querySelectorAll('tr')).forEach(function(tr){var d=tr.children;if(d.length<3){return;}var k=(d[0].textContent||'').trim(),v=I.by[k];if(v&&!d[2].querySelector('.intn')){var s=document.createElement('small');s.className='intn';s.style.cssText='opacity:.6;font-weight:400;margin-left:6px;white-space:nowrap';s.textContent='+'+v+' interns';d[2].appendChild(s);}});
+  var txt='Not counted: '+I.tot+' interns/trainees ('+Object.keys(I.by).filter(function(k){return I.by[k];}).map(function(k){return (k==='Interns'?'not tied to a division':k)+' '+I.by[k];}).join(', ')+'). Handicapped ('+I.hc+') are counted on their own, outside the divisions.';
+  if(!nx||nx.className!=='mut intnote'){var p=document.createElement('p');p.className='mut intnote';p.style.cssText='font-size:12px;margin:6px 2px';p.textContent=txt;t.parentNode.insertBefore(p,t.nextSibling);}else if(nx.textContent!==txt){nx.textContent=txt;}});}
+var dTm=null;function sched(){if(dTm){return;}dTm=setTimeout(function(){dTm=null;try{dec();}catch(e){}},120);}
+try{new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});sched();}catch(e){}
 /* the page can load its data before this file runs (the portal does): then apply the ledger now and redraw */
 if(W&&W.f&&W.f.R&&W.f.IX&&W.f.R().some(function(r){return r.Dataset==='Ledger';})){led(W.f.R(),W.f.IX(),W.f.M());try{W.render();}catch(e){}}
 })();
