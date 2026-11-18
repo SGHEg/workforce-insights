@@ -54,7 +54,7 @@ async function readMaster(buf){var z=unzip(buf),wb=await ent(z,'xl/workbook.xml'
  for(var r4=hr+1;r4<=last;r4++){var w=G[r4];if(!w){continue;}var g=function(n){var v=w[H[n]];return v==null?'':v;};if(String(g('id')).trim()===''&&String(g('name')).trim()===''){continue;}out.push(want.map(g));}
  return out;}
 function dt(v){if(typeof v==='number'&&v>20000&&v<80000){return new Date(Math.round((v-25569)*86400000)).toISOString().slice(0,10);}return String(v==null?'':v).trim();}
-function isIntern(p){return /^[39]/.test(String(p[0]).trim())||/intern/i.test(String(p[5]))||/intern/i.test(String(p[2]));}
+function isIntern(p){return /^[39]/.test(String(p[0]).trim())||/intern/i.test(String(p[5]))||/\bintern(s|ship)?\b/i.test(String(p[2]));}
 function latestMonth(){var mx='';F.R().forEach(function(r){if(r.Dataset==='Department'&&r.Month>mx){mx=r.Month;}});return mx;}
 function note(kind,ic,title,body,btn){var n=PANEL&&PANEL.querySelector('.nt');if(!n){return;}n.className='nt on '+kind;n.innerHTML='<span class="ic">'+ic+'</span><div><b>'+esc(title)+'</b>'+body+(btn?'<div>'+btn+'</div>':'')+'</div>';if(n.scrollIntoView){n.scrollIntoView({block:'nearest'});}}
 /* division as in MC_Calc: from the Category; an intern with no division takes the division of the first counted person in the same department */
