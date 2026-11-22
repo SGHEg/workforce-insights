@@ -49,4 +49,24 @@ var dTm=null;function sched(){if(dTm){return;}dTm=setTimeout(function(){dTm=null
 try{new MutationObserver(sched).observe(document.body,{childList:true,subtree:true});sched();}catch(e){}
 /* the page can load its data before this file runs (the portal does): then apply the ledger now and redraw */
 if(W&&W.f&&W.f.R&&W.f.IX&&W.f.R().some(function(r){return r.Dataset==='Ledger';})){led(W.f.R(),W.f.IX(),W.f.M());try{W.render();}catch(e){}}
+/* ADMIN-ONLY pages (owner 2026-11-22): "Hospital overview" and "Positions & places" open for the portal Administrator only (window.SGH_USER.role==='admin').
+   Everybody else (and the public Pages copy, which has no portal login) sees them faded with a lock, and clicking does nothing. Display lock only: the month data itself is still loaded by the page. */
+(function(){
+var LK={ov:1,px:1},S=W&&W.S;
+function adm(){var u=window.SGH_USER;return !!(u&&u.role==='admin');}
+try{var st=document.createElement('style');st.textContent='.si.lk{opacity:.42;cursor:not-allowed;filter:grayscale(.6)}.si.lk:hover{background:transparent}.si.lk b::after{content:" \1F512";font-size:12px}';document.head.appendChild(st);}catch(e){}
+function lock(){
+  var ok=adm(),sd=document.getElementById('sd'),redraw=0;
+  if(sd){sd.querySelectorAll("a.si[data-a='vw']").forEach(function(a){var v=a.getAttribute('data-v');if(!LK[v]){return;}
+    if(ok){if(a.classList.contains('lk')){a.classList.remove('lk');a.removeAttribute('aria-disabled');a.removeAttribute('title');redraw=1;}return;}
+    if(!a.classList.contains('lk')){a.classList.add('lk');a.setAttribute('aria-disabled','true');a.setAttribute('title','Administrators only');}
+    var sm=a.querySelector('small');if(sm&&sm.textContent!=='Administrators only'){sm.textContent='Administrators only';}});}
+  if(!ok&&S&&LK[S.vw]){S.vw='wf';try{W.render();}catch(e){}}
+  if(redraw){try{W.render();}catch(e){}}
+}
+document.addEventListener('click',function(e){if(adm()){return;}var a=e.target&&e.target.closest&&e.target.closest("a.si[data-a='vw']");if(a&&LK[a.getAttribute('data-v')]){e.preventDefault();e.stopImmediatePropagation();}},true);
+var lTm=null;function lsch(){if(lTm){return;}lTm=setTimeout(function(){lTm=null;try{lock();}catch(e){}},60);}
+try{new MutationObserver(lsch).observe(document.body,{childList:true,subtree:true});}catch(e){}
+var tk=0,iv=setInterval(function(){lsch();if(++tk>40){clearInterval(iv);}},500);lsch();
+})();
 })();
